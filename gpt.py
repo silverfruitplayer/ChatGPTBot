@@ -9,8 +9,13 @@ from pyrogram.types import Message as message
 import asyncio
 import openai
 import requests
+import logging
 
 openai.api_key = "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"
+
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    level=logging.INFO)
 
 app = Client("test1", bot_token="5808857616:AAEhIze6UIe-BnN8_S9Iu5tIT2owsBTOJdA", api_id=6, api_hash="eb06d4abfb49dc3eeb1aeb98ae0f581e")
 
@@ -35,14 +40,14 @@ async def toggle(_, message):
         async with session.get(url, headers=headers) as resp:
             await message.reply((await resp.json()))
 """
-@app.on_message(filters.command("ask"))
+@app.on_message(filters.text)
 async def message_handler(_, message):
-    if message.text.split(None, 1)[1]:
+    if message.text:
         # Send message to notify user that response is being generated
         generating_message = await message.reply("generating response...")
 
         # Get the message text
-        message_text = message.text.strip().replace("/ask","",1).strip()
+        message_text = message.text
 
         while True:
             try:
