@@ -74,7 +74,7 @@ async def message_handler(_, message):
                 )
                 os.remove(filename)
         else:
-            await message.reply(response)
+            await message.reply(**response["choices"][0]["text"]**)
             await generating_message.delete()
 
 app.start()
