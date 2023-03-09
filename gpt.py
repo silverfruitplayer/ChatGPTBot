@@ -10,6 +10,7 @@ import asyncio
 import openai
 import requests
 import logging
+import os
 
 openai.api_key = "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"
 
@@ -21,32 +22,14 @@ app = Client("test1", bot_token="5808857616:AAEhIze6UIe-BnN8_S9Iu5tIT2owsBTOJdA"
 
 @app.on_message(filters.command("start"))
 async def start(_, message):
-    await message.reply_text("running.")
+    await message.reply_text(f"Hi {message.from_user.mention}, Ask any question to start over.")
     
 
-"""
-@app.on_message(filters.text & ~filters.command("check"))
-async def toggle(_, message):
-    
-    url = f"https://api.openai.com/v1/engines/davinci/completions"
-
-    headers = {
-            "Authorization": "Bearer {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}",
-            "Content-Type": "application/json",
-        }
-    
-    async with ClientSession() as session:
-        await asyncio.sleep(0.5)
-        async with session.get(url, headers=headers) as resp:
-            await message.reply((await resp.json()))
-"""
 @app.on_message(filters.text)
 async def message_handler(_, message):
     if message.text:
-        # Send message to notify user that response is being generated
-        generating_message = await message.reply("generating response...")
+        generating_message = await message.reply("Generating response...")
 
-        # Get the message text
         message_text = message.text
 
         while True:
@@ -61,10 +44,19 @@ async def message_handler(_, message):
                     temperature=0.5,
                 )
                 break
-            except openai.exceptions.OpenAiError as e:
-                if 'Usage Limit Exceeded' in str(e):
-                    await message.reply(e)
-
+                
+            except openai.error.Timeout as e:
+                await message.reply(f"The what!?\n!!error start!!\n{e}\n!!!error end!!!")
+                pass 
+            
+            except openai.error.RateLimitError as e:
+                print(f"OpenAI API request exceeded rate limit: {e}")
+                pass
+            
+            except openai.error.InvalidRequestError as e:
+                await message.reply(f"The what!?\n!!error start!!\n{e}\n!!!error end!!!")
+                pass                                       
+                
         if len(response) > 4096:
             filename = "sex.txt"
             evaluation = "Success"
