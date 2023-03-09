@@ -44,6 +44,13 @@ async def message_handler(_, message):
                     temperature=0.5,
                 )
                 break
+            try:
+                response1 = openai.Image.create(
+                   prompt=f"{message_text}\n",
+                   n=2,
+                   size="1024x1024"
+                )
+                break
                 
             except openai.error.Timeout as e:
                 await message.reply(f"The what!?\n!!error start!!\n{e}\n!!!error end!!!")
@@ -73,6 +80,10 @@ async def message_handler(_, message):
         else:
             await message.reply(response["choices"][0]["text"])
             await generating_message.delete()
-
+        else:
+            if response1:
+                await message.reply(response["data"][0]["url"])
+                await generating_message.delete()
+             
 app.start()
 idle()     
