@@ -12,26 +12,68 @@ import requests
 import logging
 import os
 
-openai.api_key = "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"
+openai.api_key = ""
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO)
 
-app = Client("test1", bot_token="5808857616:AAEhIze6UIe-BnN8_S9Iu5tIT2owsBTOJdA", api_id=6, api_hash="eb06d4abfb49dc3eeb1aeb98ae0f581e")
+app = Client("gptbot", bot_token="", api_id=6, api_hash="eb06d4abfb49dc3eeb1aeb98ae0f581e")
 
 @app.on_message(filters.command("start"))
 async def start(_, message):
     await message.reply_text(f"Hi {message.from_user.mention}, Ask any question to start over.\nYou can search images too (NSFW content not allowed)")
     
+@app.on_message(filters.regex("^/image"))
+async def message_handler(_, message):
+    if message.text:
+        generating_message = await message.reply("Generating response for image...")
+
+        message_text = message.text    
+
+        while True:
+            try:
+                response1 = openai.Image.create(
+                   prompt=f"{message_text}\n",
+                   n=2,
+                   size="1024x1024"
+                )
+                x =  response1["data"][0]["url"]
+                await message.reply_photo(x)
+                await generating_message.delete()
+                break   
+                
+            except openai.error.Timeout as e:
+                await message.reply(f"The what!?\n!!error start!!\n{e}\n!!!error end!!!")
+                break
+            
+            except openai.error.RateLimitError as e:
+                print(f"OpenAI API request exceeded rate limit: {e}")
+                break
+            
+            except openai.error.InvalidRequestError as e:
+                await message.reply(f"The what!?\n!!error start!!\n{e}\n!!!error end!!!")
+                break                                      
+                
+                  
+
 
 @app.on_message(filters.text)
 async def message_handler(_, message):
     if message.text:
+
+        cmd = ("/")
+
+        fst_word = message.text.strip().split(None, 1)[0]
+
+        if fst_word in cmd:
+            return
+        
         generating_message = await message.reply("Generating response...")
 
         message_text = message.text    
 
+    
         while True:
             try:
                 # Pass event object to callback function
@@ -73,52 +115,8 @@ async def message_handler(_, message):
         else:
             await message.reply(response["choices"][0]["text"])
             await generating_message.delete()
-            
-@app.on_message(filters.text)
-async def message_handler(_, message):
-    if message.text:
-        generating_message = await message.reply("Generating response...")
 
-        message_text = message.text    
 
-        while True:
-            try:
-                response1 = openai.Image.create(
-                   prompt=f"{message_text}\n",
-                   n=2,
-                   size="1024x1024"
-                )
-                break   
-                
-            except openai.error.Timeout as e:
-                await message.reply(f"The what!?\n!!error start!!\n{e}\n!!!error end!!!")
-                break
-            
-            except openai.error.RateLimitError as e:
-                print(f"OpenAI API request exceeded rate limit: {e}")
-                break
-            
-            except openai.error.InvalidRequestError as e:
-                await message.reply(f"The what!?\n!!error start!!\n{e}\n!!!error end!!!")
-                break                                      
-                
-        if len(response1) > 4096:
-            filename = "sex.txt"
-            evaluation = "Success"
 
-            with open(filename, "w+", encoding="utf8") as out_file:
-                out_file.write(str(evaluation.strip()))
-                await message.reply_document(
-                    document=filename,
-                    caption="ok",
-                    disable_notification=True,
-                    reply_to_message_id=reply_to_message.message.id,
-                )
-                os.remove(filename)
-        else:
-            x =  response1["data"][0]["url"]
-            await message.reply(x)
-            await generating_message.delete()        
-             
 app.start()
-idle()     
+idle()            
