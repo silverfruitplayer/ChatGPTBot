@@ -67,7 +67,7 @@ async def message_handler(_, message):
                     document=filename,
                     caption="ok",
                     disable_notification=True,
-                    reply_to_message_id=reply_to_id,
+                    reply_to_message_id=reply_to_message.message.id,
                 )
                 os.remove(filename)
         else:
