@@ -30,7 +30,7 @@ async def message_handler(_, message):
     if message.text:
         generating_message = await message.reply("Generating response...")
 
-        message_text = message.text
+        message_text = message.text    
 
         while True:
             try:
@@ -42,13 +42,6 @@ async def message_handler(_, message):
                     n=1,
                     stop=None,
                     temperature=0.5,
-                )
-                break
-            try:
-                response1 = openai.Image.create(
-                   prompt=f"{message_text}\n",
-                   n=2,
-                   size="1024x1024"
                 )
                 break
                 
@@ -80,10 +73,7 @@ async def message_handler(_, message):
         else:
             await message.reply(response["choices"][0]["text"])
             await generating_message.delete()
-        else:
-            if response1:
-                await message.reply(response["data"][0]["url"])
-                await generating_message.delete()
+        
              
 app.start()
 idle()     
