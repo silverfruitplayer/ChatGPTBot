@@ -11,6 +11,7 @@ import openai
 import requests
 import logging
 import os
+#from uvloop import install
 
 openai.api_key = ""
 
@@ -78,7 +79,7 @@ async def message_handler(_, message):
             try:
                 # Pass event object to callback function
                 response = openai.Completion.create(
-                    engine="text-davinci-002",
+                    engine="text-davinci-003",
                     prompt=f"{message_text}\n",
                     max_tokens=2048,
                     n=1,
@@ -116,7 +117,5 @@ async def message_handler(_, message):
             await message.reply(response["choices"][0]["text"])
             await generating_message.delete()
 
-
-
 app.start()
-idle()            
+idle()
