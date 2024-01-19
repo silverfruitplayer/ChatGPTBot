@@ -98,11 +98,9 @@ async def message_handler(_, message):
         while True:
             try:
                 response = openai.Completion.create(
-                    engine="text-davinci-002",
+                    engine="gpt-3.5-turbo-instruct",
                     prompt=prompt,
                     max_tokens=2048,
-                    n=1,
-                    stop=None,
                     temperature=0.5,
                 )
                 break
