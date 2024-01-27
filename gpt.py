@@ -1,140 +1,110 @@
-from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
+import html
 from random import choice
-from pyrogram import Client, filters
+from pyrogram import Client, filters, idle, enums
 from aiohttp import ClientSession
-from json import loads
-from pyrogram.types import Message as message
+from httpx import AsyncClient, Timeout
 import asyncio
-import openai
 import requests
 import logging
 import os
+import os
+#import PIL.Image
+from PIL import Image
+import google.generativeai as genai
 
-openai.api_key = ""
+GOOGLEAI_KEY = ""
+
+genai.configure(api_key=GOOGLEAI_KEY)
+
+
+model = genai.GenerativeModel("gemini-pro-vision")
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO)
 
-app = Client("gptbot", bot_token="", api_id=6, api_hash="eb06d4abfb49dc3eeb1aeb98ae0f581e")
+app = Client("geminiai", bot_token="", api_id=6, api_hash="eb06d4abfb49dc3eeb1aeb98ae0f581e")
 
-last_question = ""
-follow_up_question = ""
+
+session = ClientSession()
+session.close()
+
+fetch = AsyncClient(
+    http2=True,
+    verify=False,
+    headers={
+        "Accept-Language": "en-US,en;q=0.9,id-ID;q=0.8,id;q=0.7",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36 Edge/107.0.1418.42",
+    },
+    timeout=Timeout(20),
+)
 
 @app.on_message(filters.command("start"))
 async def start(_, message):
-    global last_question, follow_up_question
-    last_question = ""
-    follow_up_question = ""
     await message.reply_text(f"Hi {message.from_user.mention}, Ask any question to start over.\nYou can search images too (NSFW content not allowed)")
 
-@app.on_message(filters.regex("^/image"))
-async def image_handler(_, message):
-    global last_question, follow_up_question
-    if message.text:
-        generating_message = await message.reply("Generating response for image...")
 
-        message_text = message.text
+@app.on_message(filters.sticker | filters.photo)
+async def say(_, message):
+    try:
+        x = await message.reply_text("Please Wait...")
 
-        while True:
-            try:
-                response1 = openai.Image.create(
-                   prompt=f"{message_text}\n",
-                   n=2,
-                   size="1024x1024"
+        if message.sticker:
+            sticker_path = await app.download_media(message.sticker.file_id)
+            image = Image.open(sticker_path)
+            jpeg_path = sticker_path.replace(".webp", ".jpeg")
+            image.convert("RGB").save(jpeg_path, "JPEG")
+            #photo = jpeg_path
+            response0 = model.generate_content(jpeg_path)
+            await message.reply_photo("jpeg_path")
+            await x.edit_text(
+                f"**Details Of Sticker You Provided:** {response0.parts[0].text}", parse_mode=enums.ParseMode.MARKDOWN
+            )    
+            os.remove(sticker_path)
+        else:
+            if message.photo:
+                base_img = await message.download()
+                img = Image.open(base_img)
+                response = model.generate_content(img)
+                await x.edit_text(
+                    f"**Details Of Photo You Provided:** {response.parts[0].text}", parse_mode=enums.ParseMode.MARKDOWN
                 )
-                x = response1["data"][0]["url"]
-                await message.reply_photo(x)
-                await generating_message.delete()
-                last_question = message_text  # Store the last question
-                follow_up_question = ""  # Clear the follow-up question
-                break
-
-            except openai.error.Timeout as e:
-                await message.reply(f"The what!?\n!!error start!!\n{e}\n!!!error end!!!")
-                break
-
-            except openai.error.RateLimitError as e:
-                print(f"OpenAI API request exceeded rate limit: {e}")
-                break
-
-            except openai.error.InvalidRequestError as e:
-                await message.reply(f"The what!?\n!!error start!!\n{e}\n!!!error end!!!")
-                break
+                os.remove(base_img)
+    except Exception as e:
+        print(e)
 
 @app.on_message(filters.text)
-async def message_handler(_, message):
-    global last_question, follow_up_question
-    if message.text:
-        cmd = ("/")
-
-        fst_word = message.text.strip().split(None, 1)[0]
-
-        if fst_word in cmd:
-            return
-
-        generating_message = await message.reply("Generating response...")
-
-        message_text = message.text
-
-        if message_text.lower() == "/cancel":
-            last_question = ""  # Clear the last question
-            follow_up_question = ""  # Clear the follow-up question
-            await message.reply("Follow-up question cancelled. Please ask a new question.")
-            return
-
-        if follow_up_question:
-            # Use the follow-up question as part of the prompt
-            prompt = f"{last_question}\n{follow_up_question}\n{message_text}\n"
-            follow_up_question = ""  # Clear the follow-up question
-        elif last_question:
-            # Ask for a follow-up question
-            prompt = f"{last_question}\nWould you like a follow-up answer?\n{message_text}\n"
-            follow_up_question = message_text
-        else:
-            prompt = message_text
-
-        while True:
-            try:
-                response = openai.Completion.create(
-                    engine="gpt-3.5-turbo-instruct",
-                    prompt=prompt,
-                    max_tokens=2048,
-                    temperature=0.5,
-                )
-                break
-
-            except openai.error.Timeout as e:
-                await message.reply(f"The what!?\n!!error start!!\n{e}\n!!!error end!!!")
-                pass
-
-            except openai.error.RateLimitError as e:
-                print(f"OpenAI API request exceeded rate limit: {e}")
-                pass
-
-            except openai.error.InvalidRequestError as e:
-                await message.reply(f"The what!?\n!!error start!!\n{e}\n!!!error end!!!")
-                pass
-
-        if len(response) > 4096:
-            filename = "sex.txt"
-            evaluation = "Success"
-
-            with open(filename, "w+", encoding="utf8") as out_file:
-                out_file.write(str(evaluation.strip()))
-                await message.reply_document(
-                    document=filename,
-                    caption="ok",
-                    disable_notification=True,
-                    reply_to_message_id=reply_to_message.message.id,
-                )
-                os.remove(filename)
-        else:
-            await message.reply(response["choices"][0]["text"])
-            await generating_message.delete()
-
-        last_question = message_text  # Store the current question
-
+async def gemini_chatbot(_, message):
+    if not GOOGLEAI_KEY:
+        return await message.reply_text("GOOGLEAI_KEY env is missing!!!")
+    msg = await message.reply_text("Wait a moment...")
+    try:
+        params = {
+            'key': GOOGLEAI_KEY,
+        }
+        json_data = {
+            'contents': [
+                {
+                    'parts': [
+                        {
+                            'text': message.text,
+                        },
+                    ],
+                },
+            ],
+        }
+        response = await fetch.post(
+            'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
+            params=params,
+            json=json_data,
+            timeout=20.0,
+        )
+        if not response.json().get("candidates"):
+            return await msg.edit_text("Your question contains slang or foul languages that has been blocked for security reasons.")
+        await msg.edit_text(
+            f"**Your Question was:**\n{message.text}\n\n**Your Answer is:**\n{html.escape(response.json()['candidates'][0]['content']['parts'][0]['text'])}"
+        )    
+    except Exception as e:
+        print(e)
 app.start()
-app.idle()
+idle()
