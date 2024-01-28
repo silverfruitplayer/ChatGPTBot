@@ -12,7 +12,7 @@ import os
 from PIL import Image
 import google.generativeai as genai
 
-GOOGLEAI_KEY = ""
+GOOGLEAI_KEY = "" # Please Get From https://makersuite.google.com/app/apikey #
 
 genai.configure(api_key=GOOGLEAI_KEY)
 
@@ -26,9 +26,9 @@ logging.basicConfig(
 app = Client("geminiai", bot_token="", api_id=6, api_hash="eb06d4abfb49dc3eeb1aeb98ae0f581e")
 
 
-session = ClientSession()
-session.close()
-
+#session = ClientSession()
+#session.close()
+"""
 fetch = AsyncClient(
     http2=True,
     verify=False,
@@ -38,7 +38,7 @@ fetch = AsyncClient(
     },
     timeout=Timeout(20),
 )
-
+"""
 @app.on_message(filters.command("start"))
 async def start(_, message):
     await message.reply_text(f"Hi {message.from_user.mention}, Ask any question to start over.\nYou can search images too (NSFW content not allowed)")
@@ -93,7 +93,7 @@ async def gemini_chatbot(_, message):
                 },
             ],
         }
-        response = await fetch.post(
+        response = requests.post(
             'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
             params=params,
             json=json_data,
