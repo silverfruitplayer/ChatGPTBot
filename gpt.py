@@ -1,4 +1,5 @@
 import html
+import uvloop
 from random import choice
 from pyrogram import Client, filters, idle, enums
 from aiohttp import ClientSession
@@ -106,5 +107,15 @@ async def gemini_chatbot(_, message):
         )    
     except Exception as e:
         print(e)
-app.start()
-idle()
+
+async def main():
+    # Set uvloop as the event loop policy
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+
+    # Start both app.start() and idle() concurrently
+    tasks = [app.start(), idle()]
+    await asyncio.gather(*tasks)
+
+if __name__ == "__main__":
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main())
