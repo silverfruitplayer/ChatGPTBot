@@ -104,7 +104,22 @@ async def gemini_chatbot(_, message):
             return await msg.edit_text("Your question contains slang or foul languages that has been blocked for security reasons.")
         await msg.edit_text(
             f"**Your Question was:**\n{message.text}\n\n**Your Answer is:**\n{html.escape(response.json()['candidates'][0]['content']['parts'][0]['text'])}"
-        )    
+        ) 
+        
+        char = {html.escape(response.json()['candidates'][0]['content']['parts'][0]['text'])}
+        
+        if len(char) > 4096:
+            filename = "Answer.txt"
+            
+            with open(filename, "w+", encoding="utf8") as out_file:
+                out_file.write(str(evaluation.strip()))
+                await app.send_document(
+                    message.chat.id,
+                    document=filename,
+                    caption=f"Here is your Answer For question {message.text}",
+                    disable_notification=True,
+                )
+                os.remove(filename)
     except Exception as e:
         print(e)
 
