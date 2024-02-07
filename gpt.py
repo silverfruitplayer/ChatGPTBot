@@ -1,17 +1,20 @@
-from pyrogram import Client, filters
+
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
 from random import choice
-from pyrogram import Client, filters
+from pyrogram import Client, filters, idle
 from aiohttp import ClientSession
 from json import loads
 from pyrogram.types import Message as message
 import asyncio
 import openai
+from openai import OpenAI
+
+client = OpenAI(api_key="")
 import requests
 import logging
 import os
+import uvloop
 
-openai.api_key = ""
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -39,19 +42,17 @@ async def image_handler(_, message):
 
         while True:
             try:
-                response1 = openai.Image.create(
-                   prompt=f"{message_text}\n",
-                   n=2,
-                   size="1024x1024"
-                )
-                x = response1["data"][0]["url"]
+                response1 = client.images.generate(prompt=f"{message_text}\n",
+                n=2,
+                size="1024x1024")
+                x = response1.data[0].url
                 await message.reply_photo(x)
                 await generating_message.delete()
                 last_question = message_text  # Store the last question
                 follow_up_question = ""  # Clear the follow-up question
                 break
 
-            except openai.error.Timeout as e:
+            except openai.Timeout as e:
                 await message.reply(f"The what!?\n!!error start!!\n{e}\n!!!error end!!!")
                 break
 
@@ -95,27 +96,16 @@ async def message_handler(_, message):
         else:
             prompt = message_text
 
-        while True:
+        if message_text:
             try:
-                response = openai.Completion.create(
-                    engine="gpt-3.5-turbo-instruct",
-                    prompt=prompt,
-                    max_tokens=2048,
-                    temperature=0.5,
-                )
-                break
-
-            except openai.error.Timeout as e:
-                await message.reply(f"The what!?\n!!error start!!\n{e}\n!!!error end!!!")
-                pass
-
-            except openai.error.RateLimitError as e:
-                print(f"OpenAI API request exceeded rate limit: {e}")
-                pass
-
-            except openai.error.InvalidRequestError as e:
-                await message.reply(f"The what!?\n!!error start!!\n{e}\n!!!error end!!!")
-                pass
+                response = client.completions.create(engine="gpt-3.5-turbo-instruct",
+                prompt=prompt,
+                max_tokens=2048,
+                temperature=0.5)
+        
+        
+            except Exception as e:
+                print(e)
 
         if len(response) > 4096:
             filename = "sex.txt"
@@ -131,10 +121,19 @@ async def message_handler(_, message):
                 )
                 os.remove(filename)
         else:
-            await message.reply(response["choices"][0]["text"])
+            await message.reply(response.choices[0].text)
             await generating_message.delete()
 
         last_question = message_text  # Store the current question
 
-app.start()
-app.idle()
+async def main():
+    # Set uvloop as the event loop policy
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+
+    # Start both app.start() and idle() concurrently
+    tasks = [app.start(), idle()]
+    await asyncio.gather(*tasks)
+
+if __name__ == "__main__":
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main())
