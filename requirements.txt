@@ -1,4 +1,5 @@
-pyrogram==1.4
+pyrogram
 tgcrypto
 aiohttp
 openai
+uvloop
