@@ -3,3 +3,6 @@ tgcrypto
 aiohttp
 openai
 uvloop
+requests
+Pillow
+google-generativeai
